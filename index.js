@@ -24,6 +24,31 @@ async function run() {
   try {
     await client.connect();
 
+    const parcelCollection = client.db("parcelDB").collection("parcels");
+
+    app.get("/parcels", async (req, res) => {
+      const parcels = await parcelCollection.find().toArray();
+      res.send(parcels);
+    });
+
+    // post method
+    // POST - Add a new parcel
+    app.post("/parcels", async (req, res) => {
+      try {
+        const parcel = req.body;
+        if (!parcel.trackingId) {
+          return res.status(400).send({ error: "Tracking ID is required" });
+        }
+        const result = await parcelCollection.insertOne(parcel);
+        res.send({ success: true, insertedId: result.insertedId });
+      } catch (error) {
+        console.error("Error inserting parcel:", error);
+        res
+          .status(500)
+          .send({ success: false, message: "Internal Server Error" });
+      }
+    });
+
     await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
