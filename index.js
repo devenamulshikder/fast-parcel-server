@@ -31,6 +31,31 @@ async function run() {
       res.send(parcels);
     });
 
+    // get method parcels api's
+    app.get("/parcels", async (req, res) => {
+      try {
+        const email = req.query.email;
+        const query = email ? { email } : {};
+        const parcels = await parcelCollection
+          .find(query)
+          .sort({ creation_date: -1 })
+          .toArray();
+
+        res.send({
+          success: true,
+          count: parcels.length,
+          parcels,
+        });
+      } catch (error) {
+        console.error("Error fetching parcels:", error);
+        res.status(500).send({
+          success: false,
+          message: "Failed to fetch parcels.",
+        });
+      }
+    });
+    
+
     // post method
     // POST - Add a new parcel
     app.post("/parcels", async (req, res) => {
