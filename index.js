@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const port = process.env.PORT || 5000;
 dotenv.config();
 const app = express();
@@ -54,7 +54,6 @@ async function run() {
         });
       }
     });
-    
 
     // post method
     // POST - Add a new parcel
@@ -72,6 +71,15 @@ async function run() {
           .status(500)
           .send({ success: false, message: "Internal Server Error" });
       }
+    });
+
+    // delete method
+    app.delete("/parcels/:id", async (req, res) => {
+      const id = req.params.id;
+      const result = await parcelCollection.deleteOne({
+        _id: new ObjectId(id),
+      });
+      res.send(result);
     });
 
     await client.db("admin").command({ ping: 1 });
