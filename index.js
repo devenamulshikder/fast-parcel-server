@@ -26,7 +26,7 @@ async function run() {
     await client.connect();
 
     const parcelCollection = client.db("parcelDB").collection("parcels");
-
+    const paymentCollections = client.db("parcelDB").collection("payments");
     app.get("/parcels", async (req, res) => {
       const parcels = await parcelCollection.find().toArray();
       res.send(parcels);
@@ -98,6 +98,59 @@ async function run() {
         _id: new ObjectId(id),
       });
       res.send(result);
+    });
+
+    // payment
+
+    app.get("/payments", async (req, res) => {
+      try {
+        const userEmail = req.query.email;
+        const query = userEmail ? { email: userEmail } : {};
+        const options = { sort: { paid_at: -1 } };
+        const payments = await paymentCollections
+          .find(query, options)
+          .toArray();
+        res.send(payments);
+      } catch (error) {
+        console.error("Error fetching from payment history:", error);
+        res.status(500).send({ message: "Failed to get payments" });
+      }
+    });
+
+    app.post("/payments", async (req, res) => {
+      try {
+        const { id, email, amount, paymentMethod, transactionId } = req.body;
+
+        const updateResult = await parcelCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: { payment_status: "paid" } }
+        );
+
+        if (updateResult.modifiedCount === 0) {
+          return res
+            .status(404)
+            .send({ message: "Parcel not found or already paid" });
+        }
+
+        const paymentDoc = {
+          id,
+          email,
+          amount,
+          paymentMethod,
+          transactionId,
+          paid_at_string: new Date().toISOString(),
+          paid_at: new Date(),
+        };
+
+        const paymentResult = await paymentCollections.insertOne(paymentDoc);
+        res.status(201).send({
+          message: "Payment Recorded",
+          insertedId: paymentResult.insertedId,
+        });
+      } catch (error) {
+        console.error("Payment processing failed:", error);
+        res.status(500).send({ message: "Failed to record payment" });
+      }
     });
 
     // stripe method
